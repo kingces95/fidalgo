@@ -1,0 +1,4 @@
+option domain-join-type HybridAzureADJoin
+option domain-name \${NIX_CPC_DOMAIN_NAME}
+option domain-password \$(nix::secret::cat)
+option domain-username "\${NIX_CPC_DOMAIN_JOIN_ACCOUNT}"

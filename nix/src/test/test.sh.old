@@ -1,0 +1,469 @@
+alias fd-test-entities="nix::test::entities | nix::record::align 4"
+alias fd-test-resources="nix::test::resources | nix::record::align 5"
+alias fd-test-activations="nix::test::activations | nix::record::align 5"
+alias fd-test-explicit="nix::test::instructions::explicit | nix::record::align 5"
+alias fd-test-implicit="nix::test::instructions::implicit | nix::record::align 5"
+alias fd-test-instructions="nix::test::instructions | nix::record::align 5"
+alias fd-test-sort="nix::test::sort | nix::record::align 8"
+alias fd-test-program="nix::test::program | nix::record::align 4"
+alias fd-test-complications="nix::test::complications | nix::record::align 5"
+alias fd-test-roles="nix::test::roles | nix::record::align 5"
+alias fd-test-ids="nix::test::program | nix::test::ids"
+alias fd-test-resolve="nix::test::program | nix::test::resolve"
+alias fd-test-emit="nix::test::program | nix::test::resolve | nix::test::emit"
+alias fd-test-build="nix::test::build"
+alias fd-test-expand="nix::test::expand"
+alias fd-test-preserve="nix::test::preserve"
+
+alias enum-instruction="nix::test::instruction::enum | nix::record::align 2"
+alias enum-option="nix::test::option::enum | nix::record::align 2"
+
+
+nix::test::environment() {
+    # save variables for each environment to capture reproduction
+    fd-test-emit \
+        | grep -o '${[^}]*}' \
+        | sort -u
+}
+
+nix::test::expand() (
+    fd-login-as-vm-user
+
+    local USER_ID=$(az-signed-in-user-id)
+
+    sed "s/\$(fd-login-as-vm-user; az-signed-in-user-id)/${USER_ID}/g" \
+        | nix::bash::expand \
+        | sed "s/${USER_ID}/\$(fd-login-as-vm-user; az-signed-in-user-id)/g"
+)
+
+nix::test::reduce() {
+    sed 's/\/subscriptions\/\([^/]*\)\/resourceGroups\/\([^/]*\)\/providers\/Microsoft.Fidalgo\/networksettings\/${NIX_ENV_PREFIX}-\([a-z-]*\)/$(fd-id \3)/g' \
+        | sed 's/${NIX_ENV_PREFIX}-\([a-z-]*\)/$(fd-name \1)/g'
+}
+
+nix::test::instruction::enum() {
+    nix::bash::map::write NIX_TEST_OP_ENUM | sort
+}
+
+nix::test::option::enum() {
+    nix::bash::elements NIX_TEST_OPTION_ORDER \
+        | nl \
+        | nix::record::project 2 2 1 \
+        | sort
+}
+
+nix::test::entities() {
+    nix::fs::files | mapfile -t
+
+    local -A RESOURCES=()
+    local STACK
+    for PTH in "${MAPFILE[@]}"; do
+        #./developer/my-project/my-vm/virtual-machine       > virtual-machine              
+        local FILE=$(nix::path::file "${PTH}")
+
+        #./developer/my-project/my-vm/virtual-machine       > ./developer/my-project/my-vm              
+        local DIR=$(nix::path::dir "${PTH}")
+
+        #./developer/my-project/my-vm/virtual-machine       > my-vm              
+        local DIR_NAME=$(nix::path::file "${DIR}")          
+        local NAME=${DIR_NAME}
+
+        #./developer/my-project/my-vm                       > ./developer/my-project
+        local STACK=$(nix::path::dir "${DIR}")
+
+        echo "${NAME}" "${FILE}" "${STACK}" "${PTH}"
+    done | sort
+}
+
+nix::test::resources() {
+    local ENTITY RESOURCE NAME STACK PTH
+
+    while read NAME ENTITY STACK PTH; do
+
+        # skip non-entities (e.g. user)
+        if ! nix::bash::map::test NIX_AZURE_RESOURCE "${ENTITY}"; then
+            continue
+        fi
+        RESOURCE="${ENTITY}"
+
+        # default is no parent
+        local PARENT='.'
+
+        # check for parent; e.g STACK=./administrator/my-vnet
+        if nix::bash::map::test NIX_AZURE_RESOURCE_PARENT "${RESOURCE}"; then
+            PARENT=$(nix::path::file "${STACK}")    # PARENT=myvent
+            STACK=$(nix::path::dir "${STACK}")   # STACK=./administrator
+        fi
+        
+        local USER=$(nix::path::file "${STACK}")
+
+        echo "\${NIX_ENV_PREFIX}-${NAME}" "${RESOURCE}" "${USER}" "${PARENT}" "${PTH}"
+    done < <(nix::test::entities) | sort
+}
+
+nix::test::activations() {
+    nix::test::resources \
+        | sort -k2 \
+        | nix::record::add_ordinal \
+            <(nix::azure::resource::enum) 5 2 \
+        | sort -k1,1n -k2,2 \
+        | nix::record::project 6 2 3 4 5 6
+}
+
+nix::test::instructions::explicit() {
+    local NAME RESOURCE USER PARENT PTH
+
+    while read NAME RESOURCE USER PARENT PTH; do
+        local TYPE ARG VALUE
+        while read TYPE ARG VALUE; do
+            echo "${TYPE}" "${NAME}" "${RESOURCE}" "${ARG}" "${VALUE}"
+        done < "${PTH}"
+    done < <(nix::test::resources) | sort -k2
+}
+
+nix::test::complications() {
+    nix::test::instructions::explicit \
+        | nix::record::filter::regex 5 option
+}
+
+nix::test::roles() {
+    nix::test::instructions::explicit \
+        | nix::record::filter::regex 5 role
+}
+
+nix::test::instructions::implicit() {
+    local NAME RESOURCE USR PARENT PTH
+
+    while read NAME RESOURCE USR PARENT PTH; do
+        
+        echo 'user' "${NAME}" "${RESOURCE}" 'name' "${USR}"
+
+        local CLOUD
+        if nix::bash::map::test NIX_AZURE_CPC_RESOURCE "${RESOURCE}"; then
+            CLOUD=CPC
+        else
+            CLOUD=FID
+        fi
+
+        if ! nix::bash::map::test NIX_AZURE_RESOURCE_NO_RESOURCE_GROUP "${RESOURCE}"; then
+            echo 'option' "${NAME}" "${RESOURCE}" resource-group "\${NIX_${CLOUD}_RESOURCE_GROUP}"
+        fi
+
+        echo 'cloud' "${NAME}" "${RESOURCE}" 'name' "\${NIX_${CLOUD}_CLOUD}"
+        echo 'login' "${NAME}" "${RESOURCE}" 'tenant' "\${NIX_${CLOUD}_TENANT}"
+        echo 'option' "${NAME}" "${RESOURCE}" 'subscription' "\${NIX_${CLOUD}_SUBSCRIPTION}"
+
+        echo new "${NAME}" "${RESOURCE}" 'type' "${RESOURCE}"
+        echo option "${NAME}" "${RESOURCE}" name "${NAME}"
+
+        if [[ "${PARENT}" = '.' ]]; then
+            echo 'option' "${NAME}" "${RESOURCE}" location "\${NIX_${CLOUD}_LOCATION}"
+        else
+            echo 'option' "${NAME}" "${RESOURCE}" "${NIX_AZURE_RESOURCE_PARENT[${RESOURCE}]}-name" "\${NIX_ENV_PREFIX}-${PARENT}"
+        fi
+
+        local POINTER
+        for POINTER in ${NIX_AZURE_RESOURCE_POINTS_TO[${RESOURCE}]}; do
+            echo 'option' "${NAME}" "${RESOURCE}" "${POINTER}" "~>"
+        done
+
+    done < <(nix::test::resources) | sort -k2 -k3
+}
+
+nix::test::instructions() {
+    cat <(nix::test::instructions::explicit) \
+        <(nix::test::instructions::implicit) \
+        | sort -s -k1,4 \
+        | nix::record::unique 5 1 2 3 4
+}
+
+nix::test::sort() {
+
+     # sort by ACTIVATION, NAME, INSTRUCTION, OPTION
+    nix::test::instructions \
+        | nix::record::add_ordinal \
+            <(nix::azure::resource::enum) 5 3 \
+        | nix::record::add_ordinal \
+            <(nix::test::instruction::enum) 6 2 \
+        | nix::record::add_ordinal \
+            <(nix::test::option::enum) 7 6 100 \
+        | sort \
+            -k3,3n \
+            -k5,5 \
+            -k2,2n \
+            -k1,1n \
+            -k7,7
+}
+
+nix::test::program() {
+    # project INSTRUCTION, KEY, VALUE
+    nix::test::sort \
+        | nix::record::project 8 4 7 8 
+
+    echo 'eof'
+}
+
+nix::test::ids() {
+    local -A DEFAULT_RESOURCE_ID=()
+    local -A DEFAULT_RESOURCE=()
+    local -A ACTIVATED_RESOURCE_GROUP=()
+    local -A RESOURCE_ID=()
+    local -A RESOURCE_NAME=()
+    local RESOURCE_GROUP
+
+    # programs must end in EOF
+    local INSTRUCTION KEY VALUE
+    read INSTRUCTION KEY VALUE
+
+    while true; do
+        case "${INSTRUCTION}" in
+            'eof') break ;;
+            'new') ;;
+            *) 
+                read INSTRUCTION KEY VALUE 
+                continue
+            ;;
+        esac
+
+        local RESOURCE=${VALUE}
+        local PARENT_RESOURCE=${NIX_AZURE_RESOURCE_PARENT[${RESOURCE}]}
+
+        local SUBSCRIPTION=
+        local NAME=
+        local PARENT=
+
+        while read INSTRUCTION KEY VALUE; do
+            if [[ ! "${INSTRUCTION}" =~ ^option ]]; then
+                break;
+            fi
+
+            case "${KEY}" in
+            'subscription') SUBSCRIPTION="${VALUE}" ;;
+            'name') NAME="${VALUE}" ;;
+            "${PARENT_RESOURCE}-name") PARENT="${VALUE}" ;;
+            "resource-group") RESOURCE_GROUP="${VALUE}" ;;
+            esac
+        done
+
+        local ID=$(nix::azure::id "${SUBSCRIPTION}" "${RESOURCE_GROUP}" "${RESOURCE}" "${NAME}" "${PARENT}")
+        echo "${NAME}" "${RESOURCE}" "${NAME%-${RESOURCE}}" "${ID}"
+    done
+}
+
+nix::test::resolve() {
+    local TMP=$(mktemp)
+    cat > "${TMP}"
+
+    local -A DEFAULT_RESOURCE_ID=()
+    local -A DEFAULT_RESOURCE=()
+    local -A RESOURCE_ID=()
+
+    DEFAULT_RESOURCE_ID['subnet']=$(
+        nix::azure::id "\${NIX_CPC_SUBSCRIPTION}" "\${NIX_MY_RESOURCE_GROUP}" 'subnet' "\${NIX_MY_SUBNET}" "\${NIX_MY_VNET}" 
+    )
+
+    local NAME RESOURCE PREFIX ID
+    while read -r NAME RESOURCE PREFIX ID; do
+        DEFAULT_RESOURCE_ID["${RESOURCE}"]="${ID}"
+        DEFAULT_RESOURCE["${RESOURCE}"]="${NAME}"
+        RESOURCE_ID["${NAME}"]="${ID}"
+    done < <( cat "${TMP}" | nix::test::ids )
+
+    cat "${TMP}" | {
+        local INSTRUCTION KEY VALUE
+        read INSTRUCTION KEY VALUE
+
+        while [[ ! "${INSTRUCTION}" == 'eof' ]]; do
+            echo "${INSTRUCTION}" "${KEY}" "${VALUE}"
+
+            if [[ ! "${INSTRUCTION}" == 'new' ]]; then
+                read INSTRUCTION KEY VALUE
+                continue
+            fi
+
+            local RESOURCE=${VALUE}
+            local NAME
+
+            while read INSTRUCTION KEY VALUE; do
+                if [[ ! "${INSTRUCTION}" =~ ^option ]]; then
+                    break
+                fi
+                
+                if [[ "${KEY}" == 'name' ]]; then
+                    NAME="${VALUE}"
+                    echo "${INSTRUCTION}" "${KEY}" "${VALUE}"
+                    continue
+                fi
+
+                if [[ ! "${VALUE}" == '~>' ]]; then
+                    echo "${INSTRUCTION}" "${KEY}" "${VALUE}"
+                    continue
+                fi
+
+                # resolve pointers
+                if [[ "${KEY}" =~ ^([a-z0-9_-]*)-id$ ]]; then
+                    # echo "${NAME} ($RESOURCE) --${KEY} ${NAME%-${RESOURCE}}-${BASH_REMATCH[1]}" >&2
+                    local GUESS=${NAME%-${RESOURCE}}-${BASH_REMATCH[1]}
+                    if nix::bash::map::test RESOURCE_ID "${GUESS}"; then
+                        VALUE="${RESOURCE_ID[${GUESS}]}"
+                    else
+                        VALUE="${DEFAULT_RESOURCE_ID[${BASH_REMATCH[1]}]}"
+                    fi
+                elif [[ "${KEY}" =~ ^([a-z0-9_-]*)-name$ ]]; then
+                    # echo "${NAME} ($RESOURCE) --${KEY} ${NAME%-${RESOURCE}}-${BASH_REMATCH[1]}" >&2
+                    local GUESS=${NAME%-${RESOURCE}}-${BASH_REMATCH[1]}
+                    if nix::bash::map::test RESOURCE_ID "${GUESS}"; then
+                        VALUE="${GUESS}"
+                    else
+                        VALUE="${DEFAULT_RESOURCE[${BASH_REMATCH[1]}]}"
+                    fi
+                else
+                    VALUE="${DEFAULT_RESOURCE[${KEY}]}"
+                fi
+
+                if [[ ! "${VALUE}" ]]; then                        
+                    VALUE='~X'
+                fi
+
+                # hacks
+                if [[ "${KEY}" == 'attached-network-name' ]]; then
+                    KEY='network-connection-name'
+                elif [[ "${KEY}" == 'network-setting-id' ]]; then
+                    KEY='network-connection-resource-id'
+                fi
+                echo "${INSTRUCTION}" "${KEY}" "${VALUE}"
+
+            done
+        done
+    }
+
+    echo 'eof'
+    rm "${TMP}"
+}
+
+nix::test::emit() {
+    local -A ACTIVATED_RESOURCE_GROUP=()
+
+    local ID
+    local TENANT CLOUD USER
+    local RESOURCE NAME LOCATION RESOURCE_GROUP SUBSCRIPTION
+
+    # programs must end in EOF
+    local INSTRUCTION KEY VALUE 
+    read INSTRUCTION KEY VALUE
+
+    while true; do
+        if [[ "${INSTRUCTION}" == 'eof' ]]; then
+            break
+
+        # set cloud
+        elif [[ "${INSTRUCTION}" == 'cloud' ]] && [[ ! "${CLOUD}" == "${VALUE}" ]]; then
+            CLOUD="${VALUE}"
+            # echo "az cloud set --name ${CLOUD}"
+
+        # login
+        elif [[ "${INSTRUCTION}" == 'login' ]] && [[ ! "${TENANT}" == "${VALUE}" ]]; then
+            TENANT="${VALUE}"
+            # echo "az login --use-device-code --tenant ${TENANT}"
+
+        # login user
+        elif [[ "${INSTRUCTION}" == 'user' ]] && [[ ! "${USER}" == "${VALUE}" ]]; then
+            USER="${VALUE}"
+            echo "fd-login-as-${USER}"
+
+        # assign role
+        elif [[ "${INSTRUCTION}" == 'role' ]]; then
+            local ASSIGNEE=${KEY}
+            if [[ "${KEY}" == 'developer' ]]; then
+                ASSIGNEE="\${NIX_ENV_PERSONA_DEVELOPER}"
+            fi
+            nix::bash::emit::continue_line <<- EOF
+				az role assignment create
+				    --assignee=${ASSIGNEE}
+				    --role=${VALUE}
+				    --scope=${ID}
+				    --subscription=${SUBSCRIPTION}
+				EOF
+
+        # activate
+        elif [[ "${INSTRUCTION}" == 'new' ]]; then
+            RESOURCE=${VALUE}
+
+            SUBSCRIPTION=
+            NAME=
+            LOCATION=
+
+            local TMP=$(mktemp)
+            while read INSTRUCTION KEY VALUE; do
+                if [[ ! "${INSTRUCTION}" =~ ^option ]]; then
+                    break;
+                fi
+
+                if [[ "${KEY}" == 'subscription' ]]; then
+                    SUBSCRIPTION="${VALUE}"
+                elif [[ "${KEY}" == 'name' ]]; then
+                    NAME="${VALUE}"
+                elif [[ "${KEY}" == 'location' ]]; then
+                    LOCATION="${VALUE}"
+                elif [[ "${KEY}" == 'resource-group' ]]; then
+                    RESOURCE_GROUP="${VALUE}"
+                fi
+
+                echo "${INSTRUCTION} ${KEY} ${VALUE}" >> "${TMP}"
+            done
+
+            ID=$(nix::azure::id "${SUBSCRIPTION}" "${RESOURCE_GROUP}" "${RESOURCE}" "${NAME}")
+
+            if ! nix::bash::map::test ACTIVATED_RESOURCE_GROUP "${RESOURCE_GROUP}"; then
+                echo "az group create \\"
+                echo "    --location=\${NIX_FID_LOCATION} \\"
+                echo "    --name=${RESOURCE_GROUP}"
+                ACTIVATED_RESOURCE_GROUP["${RESOURCE_GROUP}"]=true
+            fi
+
+            cat <(nix::azure::cmd::resource::create "${RESOURCE}") "${TMP}" \
+                | nix::cmd::compile \
+                | nix::cmd::emit
+            rm "${TMP}"
+            
+            continue
+        fi
+
+        read INSTRUCTION KEY VALUE
+    done
+
+    echo
+    cat test.sh
+}
+
+nix::test::build() {
+    nix::test::program \
+        | nix::test::resolve \
+        | nix::test::emit \
+        | nix::test::place
+}
+
+nix::test::place() {
+    local NAME=$(nix::path::file ${PWD})
+    cat > "${NIX_DIR_NIX_TST_SH}/${NAME}.sh"
+}
+
+nix::test::preserve() {
+    local BUG_NUMBER="${1-1537000}"
+    shift
+    
+    local NAME=$(nix::path::file ${PWD})
+    nix::test::program \
+        | nix::test::resolve \
+        | nix::test::emit \
+        | nix::test::expand | {
+            cat <<- EOF
+				# https://dev.azure.com/devdiv/OnlineServices/_workitems/edit/${BUG_NUMBER}
+				# $(date)            
+				# NIX_FID_CLI_VERSION=${NIX_FID_CLI_VERSION}
+				# NIX_CPC_CLI_VERSION=${NIX_CPC_CLI_VERSION}
+				
+			EOF
+            cat
+        } > "${NIX_DIR_NIX_TST_BUG}/${BUG_NUMBER}-${NIX_ENV_PREFIX}-${NAME}.sh"
+}

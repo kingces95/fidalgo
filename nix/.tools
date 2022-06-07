@@ -1,0 +1,6 @@
+jq apt jq
+nuget apt nuget
+gpg apt gpg
+dotnet apt dotnet-runtime-5.0 microsoft microsoft-prod
+az apt azure-cli microsoft azure-cli
+kusto nuget Microsoft.Azure.Kusto.Tools 6.0.1 net5.0

@@ -1,0 +1,2 @@
+option fidalgo-dns-suffix \${NIX_FID_DNS_SUFFIX}
+option user-id \$(fd-login-as-vm-user; az-signed-in-user-id)
