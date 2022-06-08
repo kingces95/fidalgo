@@ -236,18 +236,22 @@ nix::shim::init() {
 			)
 		EOF
 
+        local BRANCH="${USER}-onboarding"
         {
             git config --global user.name "${DISPLAY_NAME}"
             git config --global user.email "${USER}@microsoft.com"
-            git checkout -b "${USER}-onboarding"
+            git checkout -b "${BRANCH}"
             git add .
             git commit -m "Onoarding ${USER}"
-        } >/dev/null
-        git push --set-upstream origin joems-onboarding
+            git push --set-upstream origin "${BRANCH}"
+        } >/dev/null 2>/dev/null
 
-        nix::shim::echo
-        nix::shim::echo "Thanks ${USER}! Please submit modified files."
-        nix::shim::echo
+        nix::shim::echo 
+        nix::shim::echo "Create a pull request for '${BRANCH}' on GitHub by visiting:"
+        nix::shim::echo "https://github.com/kingces95/fidalgo/pull/new/${BRANCH}"
+        nix::shim::echo 
+        nix::shim::prompt 'Press enter to continue.'
+
     fi    
 }
 
