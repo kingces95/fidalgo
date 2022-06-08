@@ -39,7 +39,7 @@ nix::load::stubs() {
     gpg() { nix::tool::stub "$@"; }
     dotnet() { nix::tool::stub "$@"; }
     az() { nix::tool::stub "$@"; }
-    git() { nix::tool::git::stub "$@"; }
+    # git() { nix::tool::git::stub "$@"; }
 }
 
 nix::load::generate() {
