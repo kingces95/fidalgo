@@ -97,7 +97,7 @@ nix::az::tenant::profile::initialize() {
     fi
 
     # provoke creation of skeleton with installationId
-    az account clear >/dev/null 2>&1
+    az account clear >/dev/null
 
     local INSTALLATION=$(
         cat "${PTH}" \
