@@ -52,6 +52,15 @@ nix::bash::map::read() {
     done
 }
 
+nix::bash::map::declare() {
+    local NAME="$1"
+    shift
+
+    declare -gA "${NAME}=()"
+    nix::bash::map::read "${NAME}"
+    readonly "${NAME}"
+}
+
 nix::bash::map::read_list() {
     local -n MAP_REF="$1"
     shift

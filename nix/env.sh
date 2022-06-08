@@ -551,6 +551,8 @@ readonly NIX_HTTP_PORT=80
 readonly NIX_HTTP_DATAPLANE_PORT=5001 
 
 readonly NIX_IP_ALLOCATION_RECORDS="${NIX_DIR_NIX_USR}/ip-allocation"
+readonly NIX_GIHUB_USER_RECORDS="${NIX_DIR_NIX_USR}/github-user"
+
 nix::env::computed() {
     nix::bash::map::poset::total_order NIX_AZURE_RESOURCE_ACTIVATION_POSET \
         | mapfile -t NIX_AZURE_RESOURCE_ACTIVATION_ORDER
@@ -570,9 +572,9 @@ nix::env::computed() {
 
     readonly NIX_HOST_IP="$(nix::host::ip)"
 
-    # shared resources
-    declare -gA NIX_IP_ALLOCATION=()
-    nix::bash::map::read NIX_IP_ALLOCATION \
-        < "${NIX_IP_ALLOCATION_RECORDS}"
-    readonly NIX_IP_ALLOCATION
+    # github alias -> microsoft alias
+    nix::bash::map::declare "NIX_GITHUB_USER" < "${NIX_GIHUB_USER_RECORDS}"
+
+    # microsoft alias -> ip allocations
+    nix::bash::map::declare "NIX_IP_ALLOCATION" < "${NIX_IP_ALLOCATION_RECORDS}"
 }

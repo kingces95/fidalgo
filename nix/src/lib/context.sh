@@ -3,7 +3,7 @@ alias fd-ctx-list="nix::context::list | sort"
 alias fd-ctx-print="nix::context::print | sort"
 alias fd-ctx-clear="nix::context::clear"
 alias fd-ctx-add="nix::context::add"
-alias fd-ctx-add-ref="nix::context::ref"
+alias fd-ctx-ref="nix::context::ref"
 
 nix::context::grep() {
     declare -p \

@@ -19,12 +19,6 @@ nix::load() {
     # load computed variables
     nix::env::computed
 
-    # create user profile if missing
-    if [[ ! -f "${NIX_MY_PROFILE}" ]]; then
-        mkdir -p "${NIX_MY_DIR}"
-        nix::my::init > "${NIX_MY_PROFILE}"
-    fi
-
     # load personal variables
     . "${NIX_MY_PROFILE}"
 
@@ -83,9 +77,11 @@ nix::shim::rc::emit::regenerate() {
 }
 
 nix::shim::rc::emit() {
+
     echo "nix::env::tenant::switch" \
         "${NIX_FID_NAME}" \
         "${NIX_ENV_PERSONA}"
+
     echo "cd ${PWD}"
 }
 
@@ -119,6 +115,121 @@ nix::shim::path() {
     ( IFS=:; echo "${DIRS[*]}"; )
 }
 
+nix::shim::insert() {
+    local PTH="$1"
+    shift
+
+    local TMP=$(mktemp)
+    cat "${PTH}" <(echo "$*") \
+        | sort \
+        > "${TMP}"
+
+    mv "${TMP}" "${PTH}"
+}
+
+nix::shim::vlookup() {
+    local KEY="$1"
+    shift
+
+    local COLUMN="$1"
+    shift
+
+    $(awk -v key="${KEY}" "\$1==key {print \$${COLUMN}}")
+}
+
+nix::shim::color::context() {
+    echo -e -n "\e[0;36m"
+    trap 'echo -e -n "\033[0m"' EXIT
+}
+
+nix::shim::prompt() {
+    read -p "$* > "
+}
+
+nix::shim::init() (
+
+    # constants
+    local REPO_DIR=$(cd "$(dirname ${BASH_SOURCE})/.."; pwd)
+    local NIX_DIR="${REPO_DIR}/nix"
+    local USR_DIR="${NIX_DIR}/usr"
+    local GITHUB_USER_RECORDS="${USR_DIR}/github-user"
+    local IP_ALLOCATION_RECORDS="${USR_DIR}/ip-allocation"
+
+    # color tty cyan
+    nix::shim::color::context
+
+    # set USER if in codespace
+    if [[ "${USER}" == 'codespace' ]]; then
+
+        # try github/alias cache
+        USER=$(cat "${GITHUB_USER_RECORDS}" | nix::shim::vlookup "${GITHUB_USER}" 2)
+
+        # ask user for alias; set USER
+        if [[ ! "${USER}" ]]; then
+            echo
+            echo "Welcome to NIX hosted by Codespace, ${GITHUB_USER}! Please identify yourself."
+            echo
+            
+            nix::shim::prompt 'Microsoft alias (e.g. "chrkin")'
+            USER="${REPLY}"
+        fi
+    fi
+
+    local MY_DIR="${USR_DIR}/${USER}"
+    local MY_PROFILE="${MY_DIR}/profile.sh"
+
+    # initialze user profile
+    if [[ ! -f "${MY_PROFILE}" ]]; then            
+        echo "Welcome to NIX, ${USER}! Please initialize your profile."
+        echo
+
+        # display name
+        nix::shim::prompt 'Display name (e.g "Chris King")'
+        local DISPLAY_NAME="${REPLY}"
+
+        # cache github/alias map
+        if [[ ! "${GITHUB_USER}" ]]; then
+            nix::shim::prompt 'Github alias (e.g. "kingces95")'
+            GITHUB_USER="${REPLY}"
+        fi
+        nix::shim::insert "${GITHUB_USER_RECORDS}" "${GITHUB_USER} ${USER}"
+
+        # timezone
+        nix::shim::prompt 'Time zone offset (e.g "-8")'
+        local TZ_OFFSET="${REPLY}"
+
+        # allocate ip
+        local IP_ALLOCATION
+        while true; do
+            local ALLOCATION=$(( $RANDOM % 100 + 100 ))
+            IP_ALLOCATION="10.${ALLOCATION}.0.0/16"
+            if ! cat "${IP_ALLOCATION_RECORDS}" \
+                | grep "${IP_ALLOCATION}" >/dev/null
+            then
+                break
+            fi
+        done
+        nix::shim::insert "${IP_ALLOCATION_RECORDS}" "${USER} ${IP_ALLOCATION}"
+
+        # allocate personal profile.sh
+        mkdir -p "${MY_DIR}"
+        cat <<- EOF > "${MY_PROFILE}"
+			readonly NIX_MY_DISPLAY_NAME="${DISPLAY_NAME}"
+			readonly NIX_MY_TZ_OFFSET=${TZ_OFFSET}h
+			readonly NIX_MY_IP_ALLOCATION="${IP_ALLOCATION}"
+			readonly NIX_MY_ENV_ID=0
+			readonly NIX_MY_ENVIRONMENTS=(
+			    DOGFOOD_INT
+			    SELFHOST
+			    INT
+			    PPE
+			)
+		EOF
+        echo
+        echo "Thanks ${USER}! Please submit modified files."
+    fi    
+)
+
 nix::shim() {
     if [[ -v NIX_RC ]]; then
 
@@ -143,6 +254,8 @@ nix::shim() {
 
         return
     fi
+
+    nix::shim::init
 
     local EXIT_CODE
 

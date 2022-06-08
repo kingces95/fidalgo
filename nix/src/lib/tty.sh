@@ -30,3 +30,8 @@ nix::tty::log::install::begin() {
 nix::tty::log::install::end() {
     nix::tty::echo "$@" >&2
 }
+
+nix::tty::context() {
+    echo -e -n $(nix::color::begin::cyan)
+    trap nix::tty::color_reset EXIT
+}

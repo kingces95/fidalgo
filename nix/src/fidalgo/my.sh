@@ -1,4 +1,3 @@
-alias fd-my-init="nix::my::init"
 alias fd-my-profile="code ${NIX_MY_PROFILE}"
 alias fd-my-profile-rm="nix::my::profile::rm"
 alias fd-my-cpc-resources="nix::my::resource::report"
@@ -11,44 +10,6 @@ nix::my::computed() {
     readonly NIX_MY_RESOURCE_GROUP="${NIX_MY_ALIAS}-rg"
     readonly NIX_MY_VNET="${NIX_MY_ALIAS}-vnet"
     readonly NIX_MY_SUBNET='default'
-}
-
-nix::my::init() {
-    echo >&2
-    echo "Welcome! Please initialize your profile." >&2
-    echo >&2
-  
-    read -p 'Display name (e.g "Jane Doe") > ' DISPLAY_NAME
-    read -p 'Time zone offset (e.g "-8") > ' TZ_OFFSET
-
-    local IP_ALLOCATION
-    while true; do
-        local ALLOCATION=$(( $RANDOM % 100 + 100 ))
-        IP_ALLOCATION="10.${ALLOCATION}.0.0/16"
-        if ! nix::bash::map::test NIX_IP_ALLOCATION "${IP_ALLOCATION}"; then
-            break
-        fi
-    done
-    echo "${IP_ALLOCATION} ${NIX_MY_ALIAS}" >> "${NIX_IP_ALLOCATION_RECORDS}"
-
-    echo >&2
-    echo "Your IP block:    ${IP_ALLOCATION}." >&2
-    echo "Your profile:     ${NIX_MY_PROFILE}" >&2
-    echo "$ fd-my-profile   # edit your profile" >&2
-    echo >&2
-
-    cat <<- EOF
-		readonly NIX_MY_DISPLAY_NAME="${DISPLAY_NAME:-Jane Doe}"
-		readonly NIX_MY_TZ_OFFSET=${TZ_OFFSET:--8}h
-		readonly NIX_MY_IP_ALLOCATION="${IP_ALLOCATION}"
-        readonly NIX_MY_ENV_ID=0
-		readonly NIX_MY_ENVIRONMENTS=(
-		    DOGFOOD_INT
-		    SELFHOST
-		    INT
-		    PPE
-		)
-	EOF
 }
 
 nix::my::group::list() {
@@ -145,7 +106,6 @@ nix::my::resource::report() (
         echo "${NAME} ${URL}"
     done < <(nix::my::resource::list)
 )
-
 
 # # to-ad
 # az network vnet peering list \

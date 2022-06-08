@@ -1,3 +1,3 @@
-10.100.0.0/16 chrkin
-10.146.0.0/16 atelich
-10.164.0.0/16 chrismiller
+atelich 10.146.0.0/16
+chrismiller 10.164.0.0/16
+chrkin 10.100.0.0/16
