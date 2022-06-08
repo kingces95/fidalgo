@@ -137,23 +137,33 @@ nix::shim::vlookup() {
     awk -v key="${KEY}" "\$1==key {print \$${COLUMN}}"
 }
 
-nix::shim::echo::begin() {
+nix::shim::echo::cyan() {
     echo -e -n "\e[0;36m"
+}
+
+nix::shim::echo::yellow() {
+    echo -e -n "\e[0;33m"
 }
 
 nix::shim::echo::end() {
     echo -e -n "\033[0m"
 }
 
+nix::shim::echo::yellow() {
+    nix::shim::echo::yellow
+    echo "$@"
+    nix::shim::echo::end
+}
+
 nix::shim::echo() {
-    nix::shim::echo::begin
+    nix::shim::echo::cyan
     echo "$@"
     nix::shim::echo::end
 }
 
 nix::shim::prompt() {
-    nix::shim::echo::begin
-    read -p "$* > "
+    nix::shim::echo::cyan
+    read -p "$*"
     nix::shim::echo::end
 }
 
@@ -177,7 +187,7 @@ nix::shim::init() {
             nix::shim::echo "Welcome to NIX hosted by Codespace! Please identify yourself."
             nix::shim::echo
             
-            nix::shim::prompt 'Microsoft alias (e.g. "chrkin")'
+            nix::shim::prompt 'Microsoft alias (e.g. "chrkin") > '
             USER="${REPLY}"
             nix::shim::insert "${GITHUB_USER_RECORDS}" "${GITHUB_USER} ${USER}"
 
@@ -194,18 +204,18 @@ nix::shim::init() {
         nix::shim::echo
 
         # display name
-        nix::shim::prompt 'Display name (e.g "Chris King")'
+        nix::shim::prompt 'Display name (e.g "Chris King") > '
         local DISPLAY_NAME="${REPLY}"
 
         # cache github/alias map
         if [[ ! "${GITHUB_USER}" ]]; then
-            nix::shim::prompt 'Github alias (e.g. "kingces95")'
+            nix::shim::prompt 'Github alias (e.g. "kingces95") > '
             GITHUB_USER="${REPLY}"
             nix::shim::insert "${GITHUB_USER_RECORDS}" "${GITHUB_USER} ${USER}"
         fi
 
         # timezone
-        nix::shim::prompt 'Time zone offset (e.g "-8")'
+        nix::shim::prompt 'Time zone offset (e.g "-8") > '
         local TZ_OFFSET="${REPLY}"
 
         # allocate ip
@@ -248,10 +258,9 @@ nix::shim::init() {
 
         nix::shim::echo 
         nix::shim::echo "Create a pull request for '${BRANCH}' on GitHub by visiting:"
-        nix::shim::echo "https://github.com/kingces95/fidalgo/pull/new/${BRANCH}"
+        nix::shim::echo::yellow "https://github.com/kingces95/fidalgo/pull/new/${BRANCH}"
         nix::shim::echo 
-        nix::shim::prompt 'Press enter to continue.'
-
+        nix::shim::prompt 'Enter to continue.'
     fi    
 }
 
