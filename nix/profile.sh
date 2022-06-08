@@ -134,19 +134,30 @@ nix::shim::vlookup() {
     local COLUMN="$1"
     shift
 
-    $(awk -v key="${KEY}" "\$1==key {print \$${COLUMN}}")
+    awk -v key="${KEY}" "\$1==key {print \$${COLUMN}}"
 }
 
-nix::shim::color::context() {
+nix::shim::echo::begin() {
     echo -e -n "\e[0;36m"
-    trap 'echo -e -n "\033[0m"' EXIT
+}
+
+nix::shim::echo::end() {
+    echo -e -n "\033[0m"
+}
+
+nix::shim::echo() {
+    nix::shim::echo::begin
+    echo "$@"
+    nix::shim::echo::end
 }
 
 nix::shim::prompt() {
+    nix::shim::echo::begin
     read -p "$* > "
+    nix::shim::echo::end
 }
 
-nix::shim::init() (
+nix::shim::init() {
 
     # constants
     local REPO_DIR=$(cd "$(dirname ${BASH_SOURCE})/.."; pwd)
@@ -154,9 +165,6 @@ nix::shim::init() (
     local USR_DIR="${NIX_DIR}/usr"
     local GITHUB_USER_RECORDS="${USR_DIR}/github-user"
     local IP_ALLOCATION_RECORDS="${USR_DIR}/ip-allocation"
-
-    # color tty cyan
-    nix::shim::color::context
 
     # set USER if in codespace
     if [[ "${USER}" == 'codespace' ]]; then
@@ -166,12 +174,14 @@ nix::shim::init() (
 
         # ask user for alias; set USER
         if [[ ! "${USER}" ]]; then
-            echo
-            echo "Welcome to NIX hosted by Codespace, ${GITHUB_USER}! Please identify yourself."
-            echo
+            nix::shim::echo "Welcome to NIX hosted by Codespace! Please identify yourself."
+            nix::shim::echo
             
             nix::shim::prompt 'Microsoft alias (e.g. "chrkin")'
             USER="${REPLY}"
+            nix::shim::insert "${GITHUB_USER_RECORDS}" "${GITHUB_USER} ${USER}"
+
+            nix::shim::echo
         fi
     fi
 
@@ -180,8 +190,8 @@ nix::shim::init() (
 
     # initialze user profile
     if [[ ! -f "${MY_PROFILE}" ]]; then            
-        echo "Welcome to NIX, ${USER}! Please initialize your profile."
-        echo
+        nix::shim::echo "Welcome to NIX, ${USER}! Please initialize your profile."
+        nix::shim::echo
 
         # display name
         nix::shim::prompt 'Display name (e.g "Chris King")'
@@ -191,8 +201,8 @@ nix::shim::init() (
         if [[ ! "${GITHUB_USER}" ]]; then
             nix::shim::prompt 'Github alias (e.g. "kingces95")'
             GITHUB_USER="${REPLY}"
+            nix::shim::insert "${GITHUB_USER_RECORDS}" "${GITHUB_USER} ${USER}"
         fi
-        nix::shim::insert "${GITHUB_USER_RECORDS}" "${GITHUB_USER} ${USER}"
 
         # timezone
         nix::shim::prompt 'Time zone offset (e.g "-8")'
@@ -225,10 +235,21 @@ nix::shim::init() (
 			    PPE
 			)
 		EOF
-        echo
-        echo "Thanks ${USER}! Please submit modified files."
+
+        {
+            git config --global user.name "${DISPLAY_NAME}"
+            git config --global user.email "${USER}@microsoft.com"
+            git checkout -b "${USER}-onboarding"
+            git add .
+            git commit -m "Onoarding ${USER}"
+        } >/dev/null
+        git push --set-upstream origin joems-onboarding
+
+        nix::shim::echo
+        nix::shim::echo "Thanks ${USER}! Please submit modified files."
+        nix::shim::echo
     fi    
-)
+}
 
 nix::shim() {
     if [[ -v NIX_RC ]]; then
