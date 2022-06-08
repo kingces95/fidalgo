@@ -63,7 +63,7 @@ nix::env::tenant::switch() {
         "${CLOUD_ENDPOINTS}" \
         "${SUBSCRIPTION}"
 
-    nix::env::cli::install 2>/dev/null
+    nix::env::cli::install
 
     export PS1="\$(nix::env::tenant::prompt ${PERSONA})"
 }
