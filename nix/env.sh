@@ -30,7 +30,7 @@ readonly NIX_DIR_NIX_USR="${NIX_DIR}/usr"
 
 # repo directories
 readonly NIX_REPO_DIR=$(cd $(dirname ${BASH_SOURCE})/..; pwd)
-readonly NIX_REPO_DIR_SRC=$(cd ${NIX_REPO_DIR}/src; pwd)
+# readonly NIX_REPO_DIR_SRC=$(cd ${NIX_REPO_DIR}/src; pwd)
 readonly NIX_REPO_DIR_KUSTO=$(cd ${NIX_REPO_DIR}/kusto; pwd)
 readonly NIX_REPO_DIR_AZ=$(cd ${NIX_REPO_DIR}/az; pwd)
 
