@@ -260,7 +260,7 @@ nix::shim::init() {
         nix::shim::echo "Create a pull request for '${BRANCH}' on GitHub by visiting:"
         nix::shim::echo::yellow "https://github.com/kingces95/fidalgo/pull/new/${BRANCH}"
         nix::shim::echo 
-        nix::shim::prompt 'Enter to continue.'
+        nix::shim::prompt 'Hit enter to continue. Login with you microsoft credentials when prompted.'
     fi    
 }
 
