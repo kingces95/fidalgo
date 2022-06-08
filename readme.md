@@ -12,10 +12,10 @@ The shell
 - is optional (see [philosophy](nix/md/cpc.md)). 
 
 # Codespace
-Create a new codespace.
+Create a new codespace and enter the following in a bash terminal:
 ```bash
 # hit CTRL+` to open a bash terminal
-$ . ~/profile.sh
+$ . profile.sh
 ```
 Follow the onboarding flow.
 # Hello World! 
@@ -25,7 +25,7 @@ Make a kusto query. Kusto queries are stored at `/kusto`.
 [PUBLIC] $ fd-dri-certificate-active
 
 # execute kusto query
-[PUBLIC] $ fd-dri-certificate-active | fd-kusto
+[PUBLIC] $ fd-dri-certificate-active | fd-kusto-with-headers
 ```
 # Incrementally run a test
 - Open [`/nix/tst/sh/azure-ad.sh`](/nix/tst/sh/azure-ad.sh)

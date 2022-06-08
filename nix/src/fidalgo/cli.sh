@@ -21,7 +21,7 @@ nix::cli::install() {
     nix::cli::uninstall
 
     local FILE="fidalgo-${VERSION}-py3-none-any.whl"
-    nix::tty::log::install::begin "nix:' 'az:' 'installing ${FILE}"
+    nix::tty::log::install::begin 'nix:' 'az:' "installing ${FILE}"
     nix::az::extension::curl "${NIX_CLI_CURL}/${FILE}"
     nix::tty::log::install::end
 }
