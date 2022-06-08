@@ -1,2 +1,0 @@
-# fidalgo
-Fidalgo Dogfood
