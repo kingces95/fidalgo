@@ -127,6 +127,7 @@ alias except="nfd-line-except"
 # lint alias/function names
 # warn if kusto query exceeds 90 days
 # detect callee/caller cycles between namespaces
+# test
 
 nix::snippit() {
     # printf '%s\n' main "$(lsof -p $$ | grep dev)" > /dev/stderr
