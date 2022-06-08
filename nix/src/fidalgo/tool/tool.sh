@@ -55,7 +55,8 @@ nix::tool::test() {
 }
 
 nix::tool::reinstall() {
-    nix::tool::apt::reinstall
+    nix::tool::uninstall "$@"
+    nix::tool::install "$@"t 
 }
 
 nix::tool::install() {

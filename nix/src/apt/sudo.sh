@@ -3,18 +3,18 @@ nix::apt::sudo::purge() {
         local NAME="$1"
         shift
 
-        nix::apt::sudo::get purge "${NAME}"
+        nix::apt::sudo::get purge "${NAME}" > /dev/null
     done
 
-    nix::apt::sudo::get autoremove
+    nix::apt::sudo::get autoremove > /dev/null
 }
 
 nix::apt::sudo::update() {
-    nix::apt::sudo::get update
+    nix::apt::sudo::get update > /dev/null
 }
 
 nix::apt::sudo::clean() {
-    nix::apt::sudo::get autoremove
+    nix::apt::sudo::get autoremove > /dev/null
 }
 
 nix::apt::sudo::install() {    
@@ -22,18 +22,8 @@ nix::apt::sudo::install() {
         local NAME="$1"
         shift
 
-        # nuget installer spews logs as warnings
-        if [[ "${NAME}" == 'nuget' ]]; then
-            nix::apt::sudo::install::nuget
-            continue
-        fi
-
         nix::apt::sudo::get install "${NAME}"
     done
-}
-
-nix::apt::sudo::install::nuget() {
-    nix::apt::sudo::get install "nuget" 2>/dev/null
 }
 
 nix::apt::sudo::get() {
@@ -45,7 +35,7 @@ nix::apt::sudo::get() {
         "${COMMAND}" \
         '-qq' \
         '-y' \
-        "$@" > /dev/null
+        "$@"
 }
 
 # https://docs.docker.com/desktop/windows/install/

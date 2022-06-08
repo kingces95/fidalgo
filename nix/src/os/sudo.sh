@@ -22,23 +22,20 @@ nix::sudo::login() {
 }
 
 nix::sudo::log::begin() {
-    nix::tty::log::begin "$@"
+    nix::tty::log::install::begin 'nix:' "$@"
 
-    # prompt for password on a new line
-    declare -g NIX_SUDO_LOG_END_REPLY=$'\n'
-    if ! nix::sudo::test; then
-        nix::sudo::log::end
+    if ! nix::sudo::test; then        
+        echo >&2 # prompt for password on a new line
         nix::sudo::login
     fi
 }
 
 nix::sudo::log::end() {
-    echo -n "${NIX_SUDO_LOG_END_REPLY}" >&2
-    unset NIX_SUDO_LOG_END_REPLY
+    nix::tty::log::install::end "$@"
 }
 
 nix::sudo::gpg::dearmor() {
-    nix::apt::sudo::install 'gpg'
+    nix::apt::sudo::install 'gpg' > /dev/null
     nix::gpg::dearmor 
 }
 

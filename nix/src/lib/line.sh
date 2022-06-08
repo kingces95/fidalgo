@@ -1,7 +1,7 @@
-alias fit="nix::line::fit"
-alias exe="nix::line::execute"
-alias skip="nix::line::skip"
-alias except="nix::line::except"
+alias fd-line-fit="nix::line::fit"
+alias fd-line-exe="nix::line::execute"
+alias fd-line-skip="nix::line::skip"
+alias fd-line-except="nix::line::except"
 
 nix::line::skip() {
     tail -n +$(( ${1-1} + 1 ))

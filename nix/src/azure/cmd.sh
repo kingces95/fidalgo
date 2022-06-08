@@ -15,7 +15,7 @@ nix::azure::cmd::emit::function() {
     ALIAS=${ALIAS//ad-user-login/}
 
     echo "alias ${ALIAS}=\"${FUNCTION}\""
-    echo "${FUNCTION}() { ${TARGET} \"\$@\" | cmd-exe; }"
+    echo "${FUNCTION}() { ${TARGET} \"\$@\" | nix::cmd::run; }"
 }
 
 nix::azure::cmd::emit::harvest() {

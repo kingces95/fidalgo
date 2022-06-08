@@ -3,7 +3,7 @@ nix::tty::printf() {
     shift
 
     printf \
-        "$(nix::color::cyan "nix: ${FORMAT}")" \
+        "$(nix::color::cyan "${FORMAT}")" \
         "$@"
 }
 
@@ -16,7 +16,7 @@ nix::tty::prompt::end() {
 }
 
 nix::tty::echo() {
-    nix::tty::printf '%s\n' "$@"
+    nix::tty::printf '%s\n' "$*"
 }
 
 nix::tty::color_reset() {
@@ -28,5 +28,5 @@ nix::tty::log::install::begin() {
 }
 
 nix::tty::log::install::end() {
-    echo >&2
+    nix::tty::echo "$@" >&2
 }

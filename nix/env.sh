@@ -69,15 +69,15 @@ readonly NIX_AZURE_DEV_SSH_WWW='https://dev.azure.com/devdiv/_usersSettings/keys
 readonly NIX_OS_APT_TOOLS="${NIX_DIR}/.tools"
 
 # tool (apt)
-readonly NIX_TOOL_APT_FIELD_PACKAGE=2
-readonly NIX_TOOL_APT_FIELD_PGP=3
-readonly NIX_TOOL_APT_FIELD_REPOSITORY=4
+readonly NIX_TOOL_APT_FIELD_PACKAGE=3
+readonly NIX_TOOL_APT_FIELD_PGP=4
+readonly NIX_TOOL_APT_FIELD_REPOSITORY=5
 
 # tool (nuget)
 readonly NIX_TOOL_NUGET_DIR="${NIX_OS_DIR_TEMP}/nuget"
-readonly NIX_TOOL_NUGET_FIELD_PACKAGE=2
-readonly NIX_TOOL_NUGET_FIELD_VERSION=3
-readonly NIX_TOOL_NUGET_FIELD_FRAMEWORK=4
+readonly NIX_TOOL_NUGET_FIELD_PACKAGE=3
+readonly NIX_TOOL_NUGET_FIELD_VERSION=4
+readonly NIX_TOOL_NUGET_FIELD_FRAMEWORK=5
 
 # personal
 readonly NIX_MY_ALIAS=${USER}

@@ -1,8 +1,7 @@
-alias cmd="nix::cmd::compile"
-alias cmd-exe="nix::cmd::compile | nix::line::execute"
-alias x="nix::cmd::compile | nix::line::execute"
-alias cmd-show="nix::cmd::compile | nix::line::join"
-alias cmd-emit="nix::cmd::compile | nix::cmd::emit"
+alias fd-cmd="nix::cmd::compile"
+alias fd-cmd-exe="nix::cmd::run"
+alias fd-cmd-show="nix::cmd::compile | nix::line::join"
+alias fd-cmd-emit="nix::cmd::compile | nix::cmd::emit"
 
 nix::cmd::option::decorate() {
     local NAME="$1"
@@ -116,6 +115,11 @@ nix::cmd::compile() {
     fi
 
     nix::bash::args "${ARGS[@]}"
+}
+
+nix::cmd::run() {
+    nix::cmd::compile \
+        | nix::line::execute
 }
 
 nix::cmd::emit() {

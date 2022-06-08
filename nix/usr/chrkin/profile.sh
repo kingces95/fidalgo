@@ -93,6 +93,18 @@ alias ag="alias -p | grep "
 alias callees="nix::function::callee::tree"
 alias callers="nix::function::caller::tree"
 
+alias cmd="nix::cmd::compile"
+alias cmd-exe="nix::cmd::run"
+alias x="nix::cmd::run"
+alias cmd-show="nix::cmd::compile | nix::line::join"
+alias cmd-emit="nix::cmd::compile | nix::cmd::emit"
+
+alias fit="fd-line-fit"
+alias exe="fd-line-exe"
+alias skip="fd-line-skip"
+alias except="nfd-line-except"
+
+
 # cat $FILE | jq '. |  {RefreshToken:.RefreshToken,Account:.Account}'
 
 # dynamic stubs
@@ -114,6 +126,7 @@ alias callers="nix::function::caller::tree"
 # background task as test runner
 # lint alias/function names
 # warn if kusto query exceeds 90 days
+# detect callee/caller cycles between namespaces
 
 nix::snippit() {
     # printf '%s\n' main "$(lsof -p $$ | grep dev)" > /dev/stderr

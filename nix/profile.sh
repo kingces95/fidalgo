@@ -120,7 +120,7 @@ nix::shim::path() {
 }
 
 nix::shim() {
-    if [[ -v NIX ]]; then
+    if [[ -v NIX_RC ]]; then
 
         export -n NIX
         export -n NIX_RC
