@@ -137,34 +137,34 @@ nix::shim::vlookup() {
     awk -v key="${KEY}" "\$1==key {print \$${COLUMN}}"
 }
 
-nix::shim::echo::cyan() {
+nix::shim::color::cyan() {
     echo -e -n "\e[0;36m"
 }
 
-nix::shim::echo::yellow() {
+nix::shim::color::yellow() {
     echo -e -n "\e[0;33m"
 }
 
-nix::shim::echo::end() {
+nix::shim::color::end() {
     echo -e -n "\033[0m"
 }
 
 nix::shim::echo::yellow() {
-    nix::shim::echo::yellow
+    nix::shim::color::yellow
     echo "$@"
-    nix::shim::echo::end
+    nix::shim::color::end
 }
 
 nix::shim::echo() {
-    nix::shim::echo::cyan
+    nix::shim::color::cyan
     echo "$@"
-    nix::shim::echo::end
+    nix::shim::color::end
 }
 
 nix::shim::prompt() {
-    nix::shim::echo::cyan
+    nix::shim::color::cyan
     read -p "$*"
-    nix::shim::echo::end
+    nix::shim::color::end
 }
 
 nix::shim::init() {
